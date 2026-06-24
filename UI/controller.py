@@ -50,7 +50,30 @@ class Controller:
 
 
     def handleCerca(self, e):
-        pass
+        k = self._view._txtInK.value
+        #qui metto controllo
+        kInt = int(k)
+
+        listPilotiOttima, minDistEta = self._model.getListaPilotiOttima(kInt)
+
+        if listPilotiOttima is None:
+            self._view.txt_result.controls.clear()
+            self._view.txt_result.controls.append(ft.Text(f"Non ci sono abbastanza componenti connesse per trovare {kInt} piloti che non siano stati compagni di squadra nel range selezionato."))
+            self._view.update_page()
+            return
+
+        self._view.txt_result.controls.clear()
+        self._view.txt_result.controls.append(ft.Text("Lista di piloti con scarto di età minimo che non siano stati compagni di squadra nel range selezionato."))
+        for p in listPilotiOttima:
+            self._view.txt_result.controls.append(ft.Text(p))
+        self._view.txt_result.controls.append(ft.Text(f"Differenza di età tra pilota più giovane e più anziano: {minDistEta}"))
+
+        youngest = min(listPilotiOttima, key=lambda x: x.dob)
+        oldest = max(listPilotiOttima, key=lambda x: x.dob)
+        self._view.txt_result.controls.append(ft.Text(f"Pilota più giovane: {youngest}"))
+        self._view.txt_result.controls.append(ft.Text(f"Pilota più anziano: {oldest}"))
+
+        self._view.update_page()
 
     def fillDDYears(self):
         allYears = self._model.getAllYears()

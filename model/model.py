@@ -1,3 +1,4 @@
+import copy
 import itertools
 
 import networkx as nx
@@ -11,6 +12,56 @@ class Model:
         self._graph = nx.Graph()
         self._allNodes = []
         self._idMapPiloti = {}
+        self._optListPiloti = None
+        self._minDistAnni = None
+
+    def getListaPilotiOttima(self, k):
+        self._optListPiloti = []
+        self._minDistAnni = 100*365   #parto da un valore in giorni alto poiche devo minimizzare
+
+        components = list(nx.connected_components(self._graph))
+
+        if len(components) < k:
+            #allora non ho abbastanza componenti connesse da cui pescare, e non posso trovare una sol
+            return None, 0
+
+        parziale = []
+        self._ricorsione(components, k, parziale, 0)
+        return self._optListPiloti, self._minDistAnni
+
+    def _ricorsione(self, components, k, parziale, indexComponente):
+        #condizione di ottimalità
+        if len(parziale) == k:
+            #ho una soluzione accettabile.
+            dateDiNascita = [p.dob for p in parziale]
+            diffEtaPiloti = (max(dateDiNascita) - min(dateDiNascita)).days
+            if diffEtaPiloti < self._minDistAnni:
+                self._optListPiloti = copy.deepcopy(parziale)
+                self._minDistAnni = diffEtaPiloti
+
+        #condizione terminale
+        #1) finisco le componenti da cui pescare (mi baso sull'indice)
+        #2) se non ho abbastanza componenti rimanenti per arrivare a k piloti in parziale
+        if indexComponente >= len(components) or (len(components) - indexComponente) < (k - len(parziale)):
+            return
+
+        #se non sono uscito, allora posso ancora aggiungere piloti. Per questa componente
+        #provo ad ingaggiare un pilota oppure a non ingaggiare nessuno
+
+        #caso1, inserisco un pilota di questa comp connessa. Qua provo tutti i piloti che fanno
+        #parte della comp connessa in esame
+        componente = components[indexComponente]
+        for pilota in componente:
+            parziale.append(pilota)
+            self._ricorsione(components, k, parziale, indexComponente+1)
+            parziale.pop()
+
+        #caso2, mi tengo un branch di esplorazioni in cui non ho preso proprio nessuno
+        #da questa componente
+        self._ricorsione(components, k, parziale, indexComponente+1)
+
+
+
 
     def buildGraph(self, anno1, anno2):
         self._graph.clear()
